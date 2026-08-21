@@ -1,5 +1,7 @@
 # Direct Thread Delete
 
+[中文文档](docs/README.zh-CN.md)
+
 A local Codex plugin for browsing tasks by project and permanently deleting selected tasks while keeping the Codex Desktop sidebar synchronized.
 
 ## Install
