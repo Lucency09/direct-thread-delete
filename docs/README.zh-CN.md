@@ -4,6 +4,12 @@
 
 Direct Thread Delete 是一个本地 Codex 插件，用于按项目浏览、筛选、批量选择并永久删除 Codex 任务，同时让 Codex Desktop 侧边栏保持同步。
 
+## 运行截图
+
+![使用脱敏示例数据的 Direct Thread Delete 运行界面](images/runtime-ui-redacted.png)
+
+> 截图中的项目名、任务标题、路径和 UUID 均为虚构示例，不包含任何真实 Codex 任务数据。
+
 ## 功能
 
 - 按项目将任务组织成可展开、收起的目录树。
@@ -88,7 +94,9 @@ codex plugin marketplace remove lucency09
 ```text
 direct-thread-delete/
 ├─ .agents/plugins/marketplace.json
-├─ docs/README.zh-CN.md
+├─ docs/
+│  ├─ README.zh-CN.md
+│  └─ images/runtime-ui-redacted.png
 └─ plugins/direct-thread-delete/
    ├─ .codex-plugin/plugin.json
    └─ skills/direct-thread-delete/
