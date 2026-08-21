@@ -10,6 +10,16 @@ Direct Thread Delete 是一个本地 Codex 插件，用于按项目浏览、筛�
 
 > 截图中的项目名、任务标题、路径和 UUID 均为虚构示例，不包含任何真实 Codex 任务数据。
 
+## 已验证版本
+
+当前版本于 2026 年 8 月 21 日在以下环境中完成开发与验证：
+
+- Windows 版 Codex Desktop（`prod`）：`26.818.31338`
+- `codex` CLI：`0.146.0`
+- Direct Thread Delete：`0.1.0+codex.20260820120132`
+
+以上版本是已验证基线，并非强制锁定。兼容的 Codex 安装需要提供本地 app-server 的 `thread/list`、`thread/delete` 方法，以及用于同步侧边栏的 Desktop 宿主任务归档能力。如果缺少这些能力，插件会停止操作，不会回退到直接修改文件或数据库。
+
 ## 功能
 
 - 按项目将任务组织成可展开、收起的目录树。

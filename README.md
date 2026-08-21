@@ -10,6 +10,16 @@ Direct Thread Delete is a local Codex plugin for browsing, filtering, selecting,
 
 > The screenshot uses fully synthetic project names, task titles, paths, and UUIDs. It contains no real Codex task data.
 
+## Tested versions
+
+The current release was developed and verified on August 21, 2026 with:
+
+- Codex Desktop for Windows (`prod`): `26.818.31338`
+- `codex` CLI: `0.146.0`
+- Direct Thread Delete: `0.1.0+codex.20260820120132`
+
+These versions are the tested baseline, not a strict version lock. A compatible Codex installation must provide the local `thread/list` and `thread/delete` app-server methods and the Desktop host-side task archive capability used for sidebar synchronization. If those capabilities are unavailable, the plugin stops instead of falling back to direct file or database modification.
+
 ## Features
 
 - Organizes tasks by project in collapsible directory trees.
