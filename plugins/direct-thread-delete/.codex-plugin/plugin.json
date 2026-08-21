@@ -1,0 +1,25 @@
+{
+  "name": "direct-thread-delete",
+  "version": "0.1.0+codex.20260820120132",
+  "description": "Browse, select, and permanently delete Codex threads while keeping the Desktop sidebar synchronized.",
+  "author": {
+    "name": "Local developer"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Direct Thread Delete",
+    "shortDescription": "Delete tasks with sidebar synchronization.",
+    "longDescription": "Browse, search, filter, paginate, select, and permanently delete active or archived Codex tasks in a polished project-tree interface. A single confirmed action first synchronizes the Desktop sidebar through Codex, then permanently deletes the task through the supported app-server protocol.",
+    "developerName": "Local developer",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Interactive UI"
+    ],
+    "defaultPrompt": [
+      "Open the Codex task deletion manager.",
+      "Synchronize the sidebar and permanently delete a Codex task by UUID."
+    ]
+  }
+}

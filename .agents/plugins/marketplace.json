@@ -1,0 +1,20 @@
+{
+  "name": "lucency09",
+  "interface": {
+    "displayName": "Lucency09"
+  },
+  "plugins": [
+    {
+      "name": "direct-thread-delete",
+      "source": {
+        "source": "local",
+        "path": "./plugins/direct-thread-delete"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

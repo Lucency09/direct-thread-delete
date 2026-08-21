@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Codex 会话管理器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172027;
+      --muted: #68727d;
+      --paper: #f4f5f2;
+      --card: rgba(255, 255, 255, .9);
+      --line: #dfe3de;
+      --accent: #187c62;
+      --accent-dark: #0f5e49;
+      --danger: #b62f3d;
+      --danger-soft: #fff0f1;
+      --navy: #172b36;
+      --shadow: 0 18px 45px rgba(28, 44, 52, .09);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 0%, rgba(24,124,98,.12), transparent 32rem),
+        linear-gradient(135deg, #f7f7f2 0%, #eef2ef 100%);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .shell { max-width: 1440px; margin: 0 auto; padding: 34px 28px 48px; }
+    .hero {
+      display: flex; justify-content: space-between; gap: 28px; align-items: flex-end;
+      padding: 30px; border-radius: 24px; color: #fff; overflow: hidden;
+      background: linear-gradient(120deg, #142831, #214d4b 62%, #187c62);
+      box-shadow: var(--shadow); position: relative;
+    }
+    .hero::after {
+      content: ""; position: absolute; width: 300px; height: 300px; right: -95px; top: -170px;
+      border: 48px solid rgba(255,255,255,.08); border-radius: 50%;
+    }
+    .eyebrow { margin: 0 0 10px; color: #a7e3d1; font-size: 12px; font-weight: 800; letter-spacing: .14em; }
+    h1 { margin: 0; font-size: clamp(30px, 5vw, 48px); letter-spacing: -.045em; line-height: 1; }
+    .subtitle { margin: 14px 0 0; max-width: 720px; color: #d9e5e2; font-size: 15px; line-height: 1.6; }
+    .refresh {
+      position: relative; z-index: 1; border: 1px solid rgba(255,255,255,.3); color: #fff;
+      background: rgba(255,255,255,.1); border-radius: 12px; padding: 11px 17px; font-weight: 750;
+    }
+    .refresh:hover { background: rgba(255,255,255,.18); }
+    .hero-actions { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 9px; }
+    .shutdown {
+      border: 1px solid rgba(255,205,210,.5); color: #ffe5e8; background: rgba(145,31,45,.28);
+      border-radius: 12px; padding: 11px 17px; font-weight: 800;
+    }
+    .shutdown:hover { background: rgba(174,37,53,.48); }
+
+    .stats { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; margin: 18px 0; }
+    .stat { background: var(--card); border: 1px solid rgba(255,255,255,.9); border-radius: 16px; padding: 17px 20px; box-shadow: 0 8px 24px rgba(28,44,52,.05); }
+    .stat strong { display: block; font-size: 27px; letter-spacing: -.03em; }
+    .stat span { color: var(--muted); font-size: 13px; }
+
+    .toolbar {
+      display: grid; grid-template-columns: minmax(240px, 1.5fr) repeat(3, minmax(140px,.55fr)); gap: 12px;
+      padding: 16px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow);
+    }
+    .field { display: grid; gap: 6px; }
+    .field label { color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .field input, .field select {
+      width: 100%; border: 1px solid #ccd3cf; border-radius: 11px; background: #fff; color: var(--ink); padding: 10px 12px; outline: none;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(24,124,98,.12); }
+
+    .bulk-bar {
+      display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-top: 16px;
+      padding: 13px 16px; border: 1px solid #b9d9cf; border-radius: 15px; background: #edf8f4;
+      color: var(--accent-dark); box-shadow: 0 8px 22px rgba(24,124,98,.07);
+    }
+    .bulk-bar[hidden] { display: none; }
+    .bulk-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .clear-selection, .bulk-delete { border-radius: 10px; padding: 8px 12px; font-weight: 800; }
+    .clear-selection { border: 1px solid #b8cec6; color: var(--accent-dark); background: #fff; }
+    .bulk-delete { border: 1px solid var(--danger); color: #fff; background: var(--danger); }
+    .desktop-sync {
+      display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; margin-top: 16px;
+      padding: 14px 16px; border: 1px solid #a9d7c7; border-radius: 14px; background: #edf8f4;
+      color: var(--accent-dark); box-shadow: 0 8px 22px rgba(24,124,98,.07);
+    }
+    .desktop-sync[hidden] { display: none; }
+    .desktop-sync.offline { border-color: #e8ca7d; background: #fff9e8; color: #654b0e; }
+    .desktop-sync strong { display: block; margin-bottom: 4px; color: inherit; }
+    .desktop-sync p { margin: 0; line-height: 1.55; }
+    .desktop-sync kbd {
+      display: inline-block; padding: 1px 6px; border: 1px solid #cfb86f; border-bottom-width: 2px;
+      border-radius: 5px; background: #fff; font: 700 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+    .meta-row { display: flex; justify-content: space-between; align-items: center; margin: 22px 2px 10px; color: var(--muted); font-size: 13px; }
+    .groups { display: grid; gap: 16px; }
+    .project-group { border: 1px solid var(--line); border-radius: 18px; background: var(--card); overflow: hidden; box-shadow: 0 10px 28px rgba(28,44,52,.055); }
+    .group-head { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 16px; align-items: center; padding: 12px 16px; background: #f8faf8; border-bottom: 1px solid var(--line); }
+    .group-toggle { display: flex; min-width: 0; gap: 11px; align-items: center; border: 0; padding: 3px 0; color: inherit; background: transparent; text-align: left; }
+    .chevron { display: grid; place-items: center; width: 25px; height: 25px; flex: 0 0 auto; border-radius: 8px; color: var(--accent-dark); background: #e5f1ed; transition: transform .18s ease; }
+    .group-toggle[aria-expanded="false"] .chevron { transform: rotate(-90deg); }
+    .project-summary, .project-name, .project-path { display: block; }
+    .project-summary { min-width: 0; }
+    .project-name { font-weight: 850; letter-spacing: -.01em; }
+    .project-path { margin-top: 3px; color: var(--muted); font-size: 12px; word-break: break-all; }
+    .project-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 9px; }
+    .project-select { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-dark); font-size: 12px; font-weight: 800; white-space: nowrap; cursor: pointer; }
+    .project-select input, .row-select input { accent-color: var(--accent); }
+    .group-count { color: var(--accent-dark); background: #e2f2ec; border-radius: 999px; padding: 5px 9px; font-size: 12px; font-weight: 800; white-space: nowrap; }
+    .group-rows[hidden] { display: none; }
+    .thread-row { display: grid; grid-template-columns: 28px 54px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 16px 18px; border-bottom: 1px solid #edf0ed; }
+    .thread-row:last-child { border-bottom: 0; }
+    .thread-row:hover { background: rgba(244,248,246,.72); }
+    .thread-row.selected { background: #f0f8f5; }
+    .row-select { display: grid; place-items: center; }
+    .row-select input { width: 17px; height: 17px; margin: 0; }
+    .number { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: #edf2ef; color: #52615a; font-size: 12px; font-weight: 850; }
+    .thread-title { font-size: 15px; font-weight: 760; line-height: 1.35; overflow-wrap: anywhere; }
+    .thread-meta { display: flex; flex-wrap: wrap; gap: 7px 13px; align-items: center; margin-top: 8px; color: var(--muted); font-size: 12px; }
+    .pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 800; }
+    .pill.active { color: #096149; background: #ddf4eb; }
+    .pill.archived { color: #725316; background: #fff0c9; }
+    .uuid { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .copy { border: 0; padding: 2px 5px; border-radius: 6px; color: var(--accent-dark); background: transparent; font-size: 11px; font-weight: 800; }
+    .copy:hover { background: #e2f2ec; }
+    .delete {
+      min-width: 76px; border: 1px solid #edc5c9; border-radius: 10px; padding: 9px 13px;
+      color: var(--danger); background: #fff; font-weight: 800;
+    }
+    .delete:hover { background: var(--danger-soft); border-color: #db929a; }
+    .delete:disabled { cursor: not-allowed; opacity: .45; }
+
+    .pager { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin-top: 20px; }
+    .page-btn { min-width: 38px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); padding: 8px 10px; }
+    .page-btn.active { border-color: var(--accent); color: #fff; background: var(--accent); }
+    .page-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    .empty, .loading { padding: 60px 20px; text-align: center; color: var(--muted); background: var(--card); border: 1px dashed #cbd2cd; border-radius: 18px; }
+    .loading::before { content: ""; display: block; margin: 0 auto 14px; width: 28px; height: 28px; border: 3px solid #d8e2dd; border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .notice { position: fixed; right: 22px; bottom: 22px; max-width: 420px; padding: 13px 16px; border-radius: 12px; color: #fff; background: var(--navy); box-shadow: var(--shadow); opacity: 0; transform: translateY(12px); pointer-events: none; transition: .2s ease; }
+    .notice.show { opacity: 1; transform: translateY(0); }
+    .notice.error { background: var(--danger); }
+
+    dialog { width: min(520px, calc(100vw - 32px)); border: 0; border-radius: 20px; padding: 0; box-shadow: 0 30px 90px rgba(15,26,32,.3); }
+    dialog::backdrop { background: rgba(8,18,23,.58); backdrop-filter: blur(3px); }
+    .dialog-body { padding: 25px; }
+    .dialog-kicker { color: var(--danger); font-size: 11px; font-weight: 900; letter-spacing: .11em; }
+    .dialog-body h2 { margin: 8px 0 10px; font-size: 24px; }
+    .dialog-body p { color: var(--muted); line-height: 1.55; }
+    .target { padding: 12px; border: 1px solid #ead3d6; border-radius: 12px; background: var(--danger-soft); overflow-wrap: anywhere; }
+    .target strong { display: block; color: var(--ink); margin-bottom: 5px; }
+    .target code { color: #7c2630; font-size: 12px; }
+    .bulk-preview { max-height: 210px; overflow: auto; margin-top: 12px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: #f8faf8; }
+    .bulk-preview div { padding: 7px 0; border-bottom: 1px solid #e8ece9; font-size: 13px; }
+    .bulk-preview div:last-child { border-bottom: 0; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 20px; }
+    .cancel, .confirm { border-radius: 10px; padding: 10px 15px; font-weight: 800; }
+    .cancel { border: 1px solid var(--line); background: #fff; color: var(--ink); }
+    .confirm { border: 1px solid var(--danger); background: var(--danger); color: #fff; }
+    .confirm:disabled { opacity: .55; cursor: wait; }
+    .advanced { margin-top: 11px; color: var(--muted); font-size: 12px; }
+
+    @media (max-width: 820px) {
+      .shell { padding: 18px 13px 34px; }
+      .hero { padding: 24px; align-items: flex-start; flex-direction: column; }
+      .toolbar { grid-template-columns: 1fr 1fr; }
+      .group-head { grid-template-columns: 1fr; }
+      .project-actions { justify-content: flex-start; padding-left: 36px; }
+      .desktop-sync { grid-template-columns: 1fr; }
+      .thread-row { grid-template-columns: 28px 42px minmax(0,1fr); }
+      .delete { grid-column: 3; justify-self: start; }
+    }
+    @media (max-width: 520px) {
+      .stats { grid-template-columns: 1fr; }
+      .toolbar { grid-template-columns: 1fr; }
+      .thread-meta { align-items: flex-start; flex-direction: column; }
+      .bulk-bar { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">LOCAL · CODEX APP-SERVER</p>
+        <h1>会话管理器</h1>
+        <p class="subtitle">按项目浏览 Codex 会话，直接删除活动或归档条目。数据仅通过本机回环地址读取。</p>
+      </div>
+      <div class="hero-actions">
+        <button class="refresh" id="refresh">刷新列表</button>
+        <button class="shutdown" id="closeManager">关闭管理器</button>
+      </div>
+    </section>
+
+    <section class="stats" aria-label="会话统计">
+      <div class="stat"><strong id="totalCount">—</strong><span>全部会话</span></div>
+      <div class="stat"><strong id="activeCount">—</strong><span>活动会话</span></div>
+      <div class="stat"><strong id="archivedCount">—</strong><span>已归档</span></div>
+    </section>
+
+    <section class="toolbar" aria-label="筛选">
+      <div class="field">
+        <label for="search">搜索</label>
+        <input id="search" type="search" placeholder="标题、UUID 或项目路径">
+      </div>
+      <div class="field">
+        <label for="state">状态</label>
+        <select id="state"><option value="all">全部状态</option><option value="active">活动</option><option value="archived">已归档</option></select>
+      </div>
+      <div class="field">
+        <label for="project">项目</label>
+        <select id="project"><option value="">全部项目</option></select>
+      </div>
+      <div class="field">
+        <label for="pageSize">每页</label>
+        <select id="pageSize"><option>10</option><option selected>20</option><option>50</option><option>100</option></select>
+      </div>
+    </section>
+    <label class="advanced"><input id="allSources" type="checkbox"> 显示内部子代理与审查线程（高级）</label>
+
+    <section class="bulk-bar" id="bulkBar" aria-live="polite" hidden>
+      <span>已选择 <strong id="selectedCount">0</strong> 个会话</span>
+      <div class="bulk-actions">
+        <button class="clear-selection" id="clearSelection">清除选择</button>
+        <button class="bulk-delete" id="bulkDelete">删除所选</button>
+      </div>
+    </section>
+
+    <section class="desktop-sync offline" id="desktopSync" role="status">
+      <div>
+        <strong id="desktopSyncTitle">正在连接侧栏同步协调器…</strong>
+        <p id="desktopSyncDetail">协调器连接后，删除操作会先让 Codex Desktop 同步移除侧边栏条目，再永久删除会话。</p>
+      </div>
+    </section>
+
+    <div class="meta-row"><span id="resultMeta">正在读取…</span><span id="pageMeta"></span></div>
+    <section id="content" class="loading">正在读取本地会话</section>
+    <nav id="pager" class="pager" aria-label="分页"></nav>
+  </main>
+
+  <dialog id="deleteDialog">
+    <div class="dialog-body">
+      <div class="dialog-kicker">永久删除</div>
+      <h2>确认删除这个会话？</h2>
+      <p>一次确认后，管理器会先同步移除 Codex 侧边栏条目，再永久删除该会话及其派生子会话。此操作无法撤销。</p>
+      <div class="target"><strong id="dialogTitle"></strong><code id="dialogId"></code></div>
+      <div class="dialog-actions">
+        <button class="cancel" id="cancelDelete">取消</button>
+        <button class="confirm" id="confirmDelete">永久删除</button>
+      </div>
+    </div>
+  </dialog>
+  <dialog id="bulkDeleteDialog">
+    <div class="dialog-body">
+      <div class="dialog-kicker">批量永久删除</div>
+      <h2>确认删除已选会话？</h2>
+      <p id="bulkDialogSummary"></p>
+      <div class="bulk-preview" id="bulkDialogPreview"></div>
+      <div class="dialog-actions">
+        <button class="cancel" id="cancelBulkDelete">取消</button>
+        <button class="confirm" id="confirmBulkDelete">永久删除所选</button>
+      </div>
+    </div>
+  </dialog>
+  <dialog id="shutdownDialog">
+    <div class="dialog-body">
+      <div class="dialog-kicker">停止本地服务</div>
+      <h2>关闭会话管理器？</h2>
+      <p>关闭后，本地 Python 后端会立即退出，当前管理器标签也会一并关闭。</p>
+      <div class="dialog-actions">
+        <button class="cancel" id="cancelCloseManager">取消</button>
+        <button class="confirm" id="confirmCloseManager">确认关闭</button>
+      </div>
+    </div>
+  </dialog>
+  <div id="notice" class="notice" role="status"></div>
+
+  <script>
+    const state = {
+      page: 1, pageSize: 20, status: 'all', project: '', search: '', allSources: false,
+      deleteTarget: null, timer: null, requestId: 0, currentItems: [],
+      projects: new Map(), selectedThreads: new Map(), collapsedProjects: new Set(),
+      desktopSyncReady: false
+    };
+    const el = id => document.getElementById(id);
+    const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+    const formatDate = value => value ? new Intl.DateTimeFormat('zh-CN',{dateStyle:'medium',timeStyle:'short'}).format(new Date(Number(value) * 1000)) : '未知时间';
+
+    function notify(message, error=false) {
+      const box = el('notice'); box.textContent = message; box.className = `notice show${error ? ' error' : ''}`;
+      clearTimeout(notify.timer); notify.timer = setTimeout(() => box.className = 'notice', 3200);
+    }
+
+    function showDesktopSyncNotice(count) {
+      el('desktopSyncTitle').textContent = count > 1
+        ? `${count} 个会话已从侧边栏同步移除并永久删除`
+        : '会话已从侧边栏同步移除并永久删除';
+      el('desktopSyncDetail').textContent = 'Codex Desktop 侧栏同步与删除复查均已完成。';
+      el('desktopSync').classList.remove('offline');
+      el('desktopSync').hidden = false;
+      el('desktopSync').scrollIntoView({block:'nearest', behavior:'smooth'});
+    }
+
+    function updateSyncStatus(ready) {
+      state.desktopSyncReady = Boolean(ready);
+      el('desktopSync').classList.toggle('offline', !state.desktopSyncReady);
+      el('desktopSyncTitle').textContent = state.desktopSyncReady ? '侧栏同步已连接' : '侧栏同步协调器未连接';
+      el('desktopSyncDetail').textContent = state.desktopSyncReady
+        ? '删除时会先同步移除 Codex 侧边栏条目，再永久删除会话。'
+        : '为避免产生侧边栏残留，协调器连接前删除按钮不可用。请从 @Direct Thread Delete 启动本页面。';
+      syncSelectionUI();
+      if (state.currentItems.length) renderRows(state.currentItems);
+    }
+
+    async function api(path, options={}) {
+      const response = await fetch(path, {cache:'no-store', ...options});
+      const payload = await response.json().catch(() => ({error:'响应格式错误'}));
+      if (!response.ok) throw new Error(payload.error || `请求失败 (${response.status})`);
+      return payload;
+    }
+
+    function groupItems(items) {
+      const groups = new Map();
+      for (const item of items) {
+        const key = item.project.key;
+        if (!groups.has(key)) groups.set(key, {project:item.project, items:[]});
+        groups.get(key).items.push(item);
+      }
+      return [...groups.values()];
+    }
+
+    function selectedForProject(projectKey) {
+      return [...state.selectedThreads.values()].filter(item => item.project?.key === projectKey).length;
+    }
+
+    function syncSelectionUI() {
+      const count = state.selectedThreads.size;
+      el('selectedCount').textContent = count;
+      el('bulkBar').hidden = count === 0;
+      el('bulkDelete').disabled = count === 0 || !state.desktopSyncReady;
+      document.querySelectorAll('[data-select-thread]').forEach(input => {
+        input.checked = state.selectedThreads.has(input.dataset.selectThread);
+        input.closest('.thread-row')?.classList.toggle('selected', input.checked);
+      });
+      document.querySelectorAll('[data-select-project]').forEach(input => {
+        const selected = selectedForProject(input.dataset.selectProject);
+        const total = Number(input.dataset.selectable || 0);
+        input.checked = total > 0 && selected >= total;
+        input.indeterminate = selected > 0 && selected < total;
+        input.disabled = total === 0;
+      });
+    }
+
+    function renderRows(items) {
+      state.currentItems = items;
+      if (!items.length) { el('content').className='empty'; el('content').textContent='没有符合当前条件的会话'; return; }
+      el('content').className='groups';
+      el('content').innerHTML = groupItems(items).map(group => {
+        const project = state.projects.get(group.project.key) || {...group.project, count:group.items.length, selectableCount:group.items.filter(item=>item.selectable).length};
+        const collapsed = state.collapsedProjects.has(group.project.key);
+        return `
+        <article class="project-group">
+          <header class="group-head">
+            <button class="group-toggle" data-toggle-project="${escapeHtml(group.project.key)}" aria-expanded="${collapsed ? 'false' : 'true'}">
+              <span class="chevron">⌄</span>
+              <span class="project-summary"><span class="project-name">${escapeHtml(group.project.name)}</span><span class="project-path">${escapeHtml(group.project.path || '未关联工作目录')}</span></span>
+            </button>
+            <div class="project-actions">
+              <label class="project-select"><input type="checkbox" data-select-project="${escapeHtml(group.project.key)}" data-selectable="${project.selectableCount}"> 全选该项目</label>
+              <span class="group-count">项目 ${project.count} 条 · 本页 ${group.items.length} 条</span>
+            </div>
+          </header>
+          <div class="group-rows" ${collapsed ? 'hidden' : ''}>
+          ${group.items.map(item => {
+            const disabledReason = item.protected ? '当前管理会话不可删除' : (item.ephemeral ? '临时根会话不可删除' : (!state.desktopSyncReady ? '等待侧栏同步协调器连接' : ''));
+            const actionLabel = item.protected ? '当前会话' : (item.ephemeral ? '临时会话' : (!state.desktopSyncReady ? '等待同步' : '删除'));
+            const deleteEnabled = item.selectable && state.desktopSyncReady;
+            return `
+            <div class="thread-row ${state.selectedThreads.has(item.id) ? 'selected' : ''}">
+              <label class="row-select" title="${escapeHtml(disabledReason)}"><input type="checkbox" data-select-thread="${escapeHtml(item.id)}" ${item.selectable ? '' : 'disabled'} ${state.selectedThreads.has(item.id) ? 'checked' : ''} aria-label="选择 ${escapeHtml(item.title)}"></label>
+              <div class="number">${item.ordinal}</div>
+              <div>
+                <div class="thread-title">${escapeHtml(item.title)}</div>
+                <div class="thread-meta">
+                  <span class="pill ${item.storageState}">${item.storageState === 'archived' ? '已归档' : '活动'}</span>
+                  <span>${escapeHtml(formatDate(item.updatedAt || item.createdAt))}</span>
+                  <span class="uuid">${escapeHtml(item.id)}</span>
+                  <button class="copy" data-copy="${escapeHtml(item.id)}">复制 UUID</button>
+                </div>
+              </div>
+              <button class="delete" data-delete="${escapeHtml(item.id)}" ${deleteEnabled ? '' : `disabled title="${escapeHtml(disabledReason)}"`}>${actionLabel}</button>
+            </div>`}).join('')}
+          </div>
+        </article>`}).join('');
+      document.querySelectorAll('[data-toggle-project]').forEach(button => button.addEventListener('click', () => {
+        const key = button.dataset.toggleProject;
+        if (state.collapsedProjects.has(key)) state.collapsedProjects.delete(key); else state.collapsedProjects.add(key);
+        renderRows(state.currentItems);
+      }));
+      document.querySelectorAll('[data-select-thread]').forEach(input => input.addEventListener('change', () => {
+        const item = state.currentItems.find(row => row.id === input.dataset.selectThread);
+        if (!item?.selectable) return;
+        if (input.checked) state.selectedThreads.set(item.id, item); else state.selectedThreads.delete(item.id);
+        syncSelectionUI();
+      }));
+      document.querySelectorAll('[data-select-project]').forEach(input => input.addEventListener('change', async () => {
+        const key = input.dataset.selectProject;
+        if (!input.checked) {
+          for (const [id, item] of state.selectedThreads) if (item.project?.key === key) state.selectedThreads.delete(id);
+          syncSelectionUI(); return;
+        }
+        input.disabled = true;
+        try {
+          const query = new URLSearchParams({project:key, allSources:state.allSources?'1':'0'});
+          const data = await api(`/api/project-threads?${query}`);
+          for (const item of data.items) if (item.selectable) state.selectedThreads.set(item.id, item);
+          input.dataset.selectable = data.selectable;
+          notify(`已选择该项目 ${data.selectable} 个可删除会话`);
+        } catch (error) { notify(error.message, true); }
+        finally { input.disabled = false; syncSelectionUI(); }
+      }));
+      document.querySelectorAll('[data-copy]').forEach(button => button.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(button.dataset.copy); notify('UUID 已复制'); }
+        catch { notify('复制失败，请手动复制 UUID', true); }
+      }));
+      document.querySelectorAll('[data-delete]').forEach(button => button.addEventListener('click', () => {
+        const item = items.find(row => row.id === button.dataset.delete); state.deleteTarget = item;
+        el('dialogTitle').textContent = item.title; el('dialogId').textContent = item.id; el('deleteDialog').showModal();
+      }));
+      syncSelectionUI();
+    }
+
+    function renderProjects(projects) {
+      state.projects = new Map(projects.map(project => [project.key, project]));
+      const current = state.project;
+      el('project').innerHTML = '<option value="">全部项目</option>' + projects.map(project =>
+        `<option value="${escapeHtml(project.key)}">${escapeHtml(project.name)} (${project.count})</option>`).join('');
+      if ([...el('project').options].some(option => option.value === current)) el('project').value = current;
+      else state.project = '';
+    }
+
+    function pageButtons(page, pages) {
+      const candidates = new Set([1, pages, page-2, page-1, page, page+1, page+2].filter(value => value >= 1 && value <= pages));
+      const values = [...candidates].sort((a,b) => a-b); let previous = 0; const html = [];
+      html.push(`<button class="page-btn" data-page="${page-1}" ${page===1?'disabled':''}>上一页</button>`);
+      for (const value of values) {
+        if (previous && value - previous > 1) html.push('<span class="page-btn">…</span>');
+        html.push(`<button class="page-btn ${value===page?'active':''}" data-page="${value}">${value}</button>`); previous=value;
+      }
+      html.push(`<button class="page-btn" data-page="${page+1}" ${page===pages?'disabled':''}>下一页</button>`);
+      el('pager').innerHTML = html.join('');
+      document.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => { state.page=Number(button.dataset.page); load(); window.scrollTo({top:280,behavior:'smooth'}); }));
+    }
+
+    async function load() {
+      const requestId = ++state.requestId;
+      el('content').className='loading'; el('content').textContent='正在读取本地会话'; el('pager').innerHTML='';
+      const query = new URLSearchParams({page:state.page,pageSize:state.pageSize,state:state.status,project:state.project,search:state.search,allSources:state.allSources?'1':'0'});
+      try {
+        const data = await api(`/api/threads?${query}`); if (requestId !== state.requestId) return; state.page=data.page;
+        updateSyncStatus(data.desktopSyncReady);
+        el('totalCount').textContent=data.stats.total; el('activeCount').textContent=data.stats.active; el('archivedCount').textContent=data.stats.archived;
+        el('resultMeta').textContent=`筛选结果 ${data.total} 条`; el('pageMeta').textContent=`第 ${data.page} / ${data.pages} 页`;
+        renderProjects(data.projects); renderRows(data.items); pageButtons(data.page,data.pages);
+      } catch (error) { if (requestId !== state.requestId) return; el('content').className='empty'; el('content').textContent=error.message; notify(error.message,true); }
+    }
+
+    el('refresh').addEventListener('click', load);
+    el('closeManager').addEventListener('click', () => el('shutdownDialog').showModal());
+    el('cancelCloseManager').addEventListener('click', () => el('shutdownDialog').close());
+    el('confirmCloseManager').addEventListener('click', async () => {
+      const confirmButton = el('confirmCloseManager'); confirmButton.disabled = true; confirmButton.textContent = '正在关闭…';
+      try {
+        const response = await fetch('/api/shutdown', {
+          method:'POST', headers:{'Content-Type':'application/json'}, body:'{}', cache:'no-store', keepalive:true
+        });
+        const payload = await response.json().catch(() => ({error:'响应格式错误'}));
+        if (!response.ok) throw new Error(payload.error || `请求失败 (${response.status})`);
+        el('shutdownDialog').close();
+        document.querySelectorAll('button,input,select').forEach(control => control.disabled = true);
+        el('closeManager').textContent = '管理器已关闭';
+        el('resultMeta').textContent = '服务已停止'; el('pageMeta').textContent = '';
+        el('content').className = 'empty'; el('content').textContent = '管理器后端已退出，正在关闭标签…';
+        el('pager').innerHTML = ''; document.title = '管理器已关闭'; notify('管理器已关闭');
+        window.close();
+      } catch (error) {
+        confirmButton.disabled = false; confirmButton.textContent = '确认关闭'; notify(error.message, true);
+      }
+    });
+    el('state').addEventListener('change', event => {state.status=event.target.value;state.page=1;load();});
+    el('project').addEventListener('change', event => {state.project=event.target.value;state.page=1;load();});
+    el('pageSize').addEventListener('change', event => {state.pageSize=Number(event.target.value);state.page=1;load();});
+    el('allSources').addEventListener('change', event => {state.allSources=event.target.checked;state.selectedThreads.clear();syncSelectionUI();state.page=1;load();});
+    el('search').addEventListener('input', event => {clearTimeout(state.timer);state.timer=setTimeout(()=>{state.search=event.target.value.trim();state.page=1;load();},260);});
+    el('clearSelection').addEventListener('click', () => { state.selectedThreads.clear(); syncSelectionUI(); });
+    el('bulkDelete').addEventListener('click', () => {
+      const items = [...state.selectedThreads.values()];
+      if (!items.length) return;
+      const projects = new Set(items.map(item => item.project?.key));
+      el('bulkDialogSummary').textContent = `将同步移除侧边栏并永久删除 ${items.length} 个会话，涉及 ${projects.size} 个项目；这是一次操作，无法撤销。`;
+      el('bulkDialogPreview').innerHTML = items.slice(0, 8).map(item => `<div>${escapeHtml(item.title)}<br><span class="uuid">${escapeHtml(item.id)}</span></div>`).join('') + (items.length > 8 ? `<div>另有 ${items.length - 8} 个会话…</div>` : '');
+      el('bulkDeleteDialog').showModal();
+    });
+    el('cancelBulkDelete').addEventListener('click', () => el('bulkDeleteDialog').close());
+    el('confirmBulkDelete').addEventListener('click', async () => {
+      const ids = [...state.selectedThreads.keys()];
+      if (!ids.length) { el('bulkDeleteDialog').close(); return; }
+      const button = el('confirmBulkDelete'); button.disabled = true; button.textContent = `正在删除 ${ids.length} 个…`;
+      try {
+        const result = await api('/api/delete-many', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({threadIds:ids,confirmThreadIds:ids})});
+        el('bulkDeleteDialog').close(); state.selectedThreads.clear(); syncSelectionUI();
+        notify(`已同步侧栏并永久删除 ${result.count} 个会话`); showDesktopSyncNotice(result.count); await load();
+      } catch (error) { notify(error.message, true); }
+      finally { button.disabled = false; button.textContent = '永久删除所选'; }
+    });
+    el('cancelDelete').addEventListener('click', () => el('deleteDialog').close());
+    el('confirmDelete').addEventListener('click', async () => {
+      if (!state.deleteTarget) return; const button=el('confirmDelete'); button.disabled=true; button.textContent='删除中…';
+      try {
+        const deletedId = state.deleteTarget.id;
+        const result = await api('/api/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({threadId:deletedId,confirmThreadId:deletedId})});
+        state.selectedThreads.delete(deletedId); syncSelectionUI();
+        el('deleteDialog').close(); notify('会话已从侧边栏同步移除并永久删除'); showDesktopSyncNotice(result.deleted ? 1 : 0); await load();
+      } catch(error) { notify(error.message,true); }
+      finally { button.disabled=false; button.textContent='永久删除'; state.deleteTarget=null; }
+    });
+    el('deleteDialog').addEventListener('click', event => { if (event.target === el('deleteDialog')) el('deleteDialog').close(); });
+    el('bulkDeleteDialog').addEventListener('click', event => { if (event.target === el('bulkDeleteDialog')) el('bulkDeleteDialog').close(); });
+    el('shutdownDialog').addEventListener('click', event => { if (event.target === el('shutdownDialog')) el('shutdownDialog').close(); });
+    setInterval(async () => {
+      try { const status = await api('/api/status'); if (status.desktopSyncReady !== state.desktopSyncReady) updateSyncStatus(status.desktopSyncReady); }
+      catch { updateSyncStatus(false); }
+    }, 2500);
+    load();
+  </script>
+</body>
+</html>
